@@ -99,3 +99,53 @@ button:hover {
     color: #64748b;
     font-size: 14px;
 }
+.explanation {
+    margin-top: 20px;
+    padding: 18px;
+    background: #f8fafc;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+}
+
+.explanation h3 {
+    color: #334155;
+    margin-bottom: 8px;
+}
+
+.explanation p {
+    color: #64748b;
+    font-size: 15px;
+    margin-bottom: 12px;
+}
+
+.important-words {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.word {
+    display: inline-block;
+    padding: 7px 12px;
+    background: #e0e7ff;
+    color: #3730a3;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: bold;
+}
+select {
+    width: 100%;
+    padding: 14px;
+    margin-bottom: 20px;
+    font-size: 16px;
+    border: 2px solid #cbd5e1;
+    border-radius: 10px;
+    background: white;
+    color: #334155;
+    outline: none;
+    cursor: pointer;
+}
+
+select:focus {
+    border-color: #6366f1;
+}

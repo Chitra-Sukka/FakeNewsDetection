@@ -1,19 +1,18 @@
 async function checkNews() {
 
     const newsText = document.getElementById("newsText").value.trim();
+    const language = document.getElementById("language").value;
+
     const loading = document.getElementById("loading");
     const result = document.getElementById("result");
 
-    // Clear previous result
     result.innerHTML = "";
 
-    // Check empty input
     if (!newsText) {
         result.innerHTML = "⚠️ Please enter some news text.";
         return;
     }
 
-    // Show loading
     loading.style.display = "block";
 
     try {
@@ -24,7 +23,8 @@ async function checkNews() {
                 "Content-Type": "application/json"
             },
             body: JSON.stringify({
-                news: newsText
+                news: newsText,
+                language: language
             })
         });
 
@@ -37,9 +37,17 @@ async function checkNews() {
             return;
         }
 
-        // Display prediction
+        const fakeWords = data.fake_words
+            .map(word => `<span class="word">${word}</span>`)
+            .join("");
+
+        const realWords = data.real_words
+            .map(word => `<span class="word">${word}</span>`)
+            .join("");
+
         result.innerHTML = `
             <div class="prediction">
+
                 <div class="prediction-result">
                     ${data.result}
                 </div>
@@ -47,6 +55,39 @@ async function checkNews() {
                 <div class="confidence">
                     Confidence: ${data.confidence}%
                 </div>
+
+                <div class="explanation">
+
+                    <h3>🔍 Why did AI predict this?</h3>
+
+                    <p>
+                        Language: ${language}
+                    </p>
+
+                    <p>
+                        Words that influenced the prediction:
+                    </p>
+
+                    <div class="important-words">
+
+                        <strong>⚠️ Fake-related words:</strong>
+
+                        <div class="word-list">
+                            ${fakeWords || "None detected"}
+                        </div>
+
+                        <br>
+
+                        <strong>✅ Real-related words:</strong>
+
+                        <div class="word-list">
+                            ${realWords || "None detected"}
+                        </div>
+
+                    </div>
+
+                </div>
+
             </div>
         `;
 
