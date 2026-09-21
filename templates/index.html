@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>AI Fake News Detector</title>
+
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+    <div class="container">
+
+        <h1>📰 AI Fake News Detector</h1>
+
+        <p class="subtitle">
+            Detect whether a news article is Fake or Real using Artificial Intelligence
+        </p>
+
+        <div class="card">
+
+            <label for="newsText">Enter News Article</label>
+
+            <textarea
+                id="newsText"
+                placeholder="Paste the news article here..."
+            ></textarea>
+
+            <button onclick="checkNews()">
+                🔍 Check News
+            </button>
+
+            <div id="loading">
+                Analyzing news... Please wait.
+            </div>
+
+            <div id="result"></div>
+
+        </div>
+
+        <p class="footer">
+            AI-Based Explainable Multilingual Fake News Detection System
+        </p>
+
+    </div>
+
+    <script src="{{ url_for('static', filename='script.js') }}"></script>
+
+</body>
+</html>
