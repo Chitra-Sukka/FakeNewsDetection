@@ -1,0 +1,43 @@
+Loaded: fake=23481, real=21417
+Cleaning text (this takes a minute)...
+Removed 6048 duplicate/near-empty rows -> 38771 left
+Train=31016  Test=7755
+Mixed in 15440 articles from dataset/all_extra.csv (each counts x1.0); kept 6618 for a separate test
+TF-IDF matrix: (46456, 100000)
+Tuning C with 3-fold cross-validation...
+Best C: 1
+
+=== HELD-OUT TEST (same distribution as training) ===
+Accuracy: 0.9723
+              precision    recall  f1-score   support
+
+        Fake       0.99      0.95      0.97      3570
+        Real       0.96      0.99      0.97      4185
+
+    accuracy                           0.97      7755
+   macro avg       0.97      0.97      0.97      7755
+weighted avg       0.97      0.97      0.97      7755
+
+Confusion matrix:
+ [[3387  183]
+ [  32 4153]]
+
+=== HELD-OUT 30% OF THE MIXED-IN DATASET ===
+Accuracy: 0.8894
+              precision    recall  f1-score   support
+
+        Fake       0.86      0.92      0.89      3183
+        Real       0.92      0.86      0.89      3435
+
+    accuracy                           0.89      6618
+   macro avg       0.89      0.89      0.89      6618
+weighted avg       0.89      0.89      0.89      6618
+
+Confusion matrix:
+ [[2925  258]
+ [ 474 2961]]
+
+Top FAKE words: ['just', 'hillary', 'nt', 'america', 'obama', 'trump', 'source', 'entire', 'went', 'today', 'gop', 'yearold', 'according', 'article', 'screen capture', 'didn', 'fact', 'president trump', 'uk', 'reports', 'pm', 'actually', 'fbi', 'screenshot', 'stated']
+Top REAL words: ['said', 'president donald', 'say', 'president', 'said statement', 'mr', 'percent', 'spokesman', 'told', 'reporters', 'minister', 'week', 'washington', 'islamic state', 'month', 'president barack', 'statement', 'told reporters', 'republican', 'democratic', 'year', 'talks', 'news conference', 'london', 'agency']
+
+Saved to model/  (total time 68s)
