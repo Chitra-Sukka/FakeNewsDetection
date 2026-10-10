@@ -1,86 +1,87 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI Fake News Detector</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#101a48">
+  <title>AI Fake News Detector</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
+  <div class="ambient ambient-one"></div><div class="ambient ambient-two"></div>
+  <div class="app-shell">
+    <header class="topbar">
+      <a class="brand" href="/" aria-label="AI Fake News Detector home">
+        <div class="brand-mark">✦</div>
+        <div><h1>AI Fake News Detector</h1><p>Think critically. Verify before you share.</p></div>
+      </a>
+      <div class="header-pill"><span class="live-dot"></span> AI-powered analysis</div>
+    </header>
 
-    <div class="container">
-        <h1>📰 AI Fake News Detector</h1>
+    <section class="feature-strip" aria-label="Features">
+      <div class="feature"><span class="feature-icon blue">◈</span><div><strong>AI powered</strong><small>Machine-learning analysis</small></div></div>
+      <div class="feature"><span class="feature-icon cyan">◎</span><div><strong>Multilingual</strong><small>Analyze supported languages</small></div></div>
+      <div class="feature"><span class="feature-icon violet">♫</span><div><strong>Voice enabled</strong><small>Speak and hear results</small></div></div>
+      <div class="feature"><span class="feature-icon pink">✧</span><div><strong>Explainable results</strong><small>Explore influential words</small></div></div>
+    </section>
 
-        <p class="subtitle">
-            Detect whether a news article is Fake or Real using Artificial Intelligence
-        </p>
+    <main class="workspace">
+      <section class="panel input-panel">
+        <div class="section-heading"><span class="heading-icon">↗</span><div><h2>Analyze an article</h2><p>Paste the news text below to get started.</p></div></div>
 
-        <div class="card">
+        <label for="language">News language</label>
+        <div class="select-wrap"><select id="language">
+          <option value="auto">Auto-detect language</option><option value="en">English</option>
+          <option value="hi">Hindi</option><option value="te">Telugu</option><option value="ta">Tamil</option>
+          <option value="kn">Kannada</option><option value="ml">Malayalam</option><option value="bn">Bengali</option>
+          <option value="mr">Marathi</option><option value="gu">Gujarati</option><option value="es">Spanish</option><option value="fr">French</option>
+        </select></div>
 
-            <label for="language">Select News Language</label>
-            <select id="language">
-                <option value="auto">🌐 Auto-detect</option>
-                <option value="en">🇬🇧 English</option>
-                <!-- Indian Languages -->
-                <option value="hi">🇮🇳 Hindi (हिन्दी)</option>
-                <option value="te">🇮🇳 Telugu (తెలుగు)</option>
-                <option value="ta">🇮🇳 Tamil (தமிழ்)</option>
-                <option value="kn">🇮🇳 Kannada (ಕನ್ನಡ)</option>
-                <option value="ml">🇮🇳 Malayalam (മലയാളം)</option>
-                <option value="bn">🇮🇳 Bengali (বাংলা)</option>
-                <option value="mr">🇮🇳 Marathi (मराठी)</option>
-                <option value="gu">🇮🇳 Gujarati (ગુજરાતી)</option>
-                <!-- International Languages -->
-                <option value="es">🇪🇸 Spanish (Español)</option>
-                <option value="fr">🇫🇷 French (Français)</option>
-            </select>
+        <div class="label-row"><label for="newsText">News article</label><span id="wordCount">0 words</span></div>
+        <textarea id="newsText" placeholder="Paste a news article here…&#10;&#10;For better analysis, include the full headline and article text." spellcheck="true"></textarea>
+        <div class="input-hint"><span class="hint-dot"></span> For best results, enter at least 15 words.</div>
 
-            <label for="newsText">Enter News Article</label>
-            <textarea
-                id="newsText"
-                rows="6"
-                placeholder="Paste the news article here, or use the microphone..."
-            ></textarea>
-
-            <div class="voice-bar">
-                <select id="voiceLang" title="Language you will speak in">
-                    <option value="en-IN">Speak: English (India)</option>
-                    <option value="hi-IN">Speak: Hindi (हिंदी)</option>
-                    <option value="te-IN">Speak: Telugu (తెలుగు)</option>
-                    <option value="ta-IN">Speak: Tamil (தமிழ்)</option>
-                    <option value="kn-IN">Speak: Kannada (ಕನ್ನಡ)</option>
-                    <option value="ml-IN">Speak: Malayalam (മലയാളം)</option>
-                    <option value="bn-IN">Speak: Bengali (বাংলা)</option>
-                    <option value="mr-IN">Speak: Marathi (मराठी)</option>
-                </select>
-                <button type="button" id="micBtn" class="voice-btn" onclick="toggleMic()">🎤 Start speaking</button>
-                <button type="button" id="speakBtn" class="voice-btn" onclick="speakLast()" disabled>🔊 Read result</button>
-            </div>
-
-            <div class="voice-options">
-                <label class="check"><input type="checkbox" id="autoCheck" checked> Check automatically when I stop speaking</label>
-                <label class="check"><input type="checkbox" id="autoRead" checked> Read the result aloud</label>
-            </div>
-
-            <button type="button" onclick="checkNews()">
-                🔍 Check News
-            </button>
-
-            <div id="loading" style="display: none;">
-                Analyzing news... Please wait.
-            </div>
-
-            <div id="result"></div>
-
+        <div class="voice-section">
+          <div class="voice-title"><span>🎙</span> Voice input</div>
+          <div class="voice-controls">
+            <div class="select-wrap voice-select"><select id="voiceLang" aria-label="Speech recognition language">
+              <option value="en-IN">English (India)</option><option value="hi-IN">Hindi</option><option value="te-IN">Telugu</option>
+              <option value="ta-IN">Tamil</option><option value="kn-IN">Kannada</option><option value="ml-IN">Malayalam</option>
+              <option value="bn-IN">Bengali</option><option value="mr-IN">Marathi</option>
+            </select></div>
+            <button class="btn btn-voice" id="micBtn" type="button" onclick="toggleMic()">🎙 Start speaking</button>
+            <button class="btn btn-soft" id="speakBtn" type="button" onclick="speakLast()" disabled>🔊 Read result</button>
+          </div>
+          <div class="options-row">
+            <label class="check-option"><input type="checkbox" id="autoCheck" checked> Analyze when I finish speaking</label>
+          </div>
         </div>
 
-        <p class="footer">
-            AI-Based Explainable Multilingual Fake News Detection System
-        </p>
+        <div class="action-stack">
+          <button class="btn btn-primary" id="checkBtn" type="button" onclick="checkNews()"><span>✦</span> Analyze news</button>
+          <button class="btn btn-danger-outline" id="eraseBtn" type="button" onclick="eraseAll()">⌫ Erase current article</button>
+        </div>
+        <p class="privacy-note">ⓘ Your result is a model prediction, not a guarantee of truth. Verify important claims with reliable sources.</p>
+      </section>
 
-    </div>
+      <section class="panel results-panel" id="resultPanel" aria-live="polite">
+        <div class="result-header"><div class="section-heading"><span class="heading-icon result-icon">▥</span><div><h2>Analysis result</h2><p id="resultSubtitle">Your prediction will appear here.</p></div></div>
+          <div class="result-actions"><button class="btn btn-pdf" id="pdfBtn" type="button" onclick="saveAsPDF()" disabled>⇩ Save as PDF</button></div>
+        </div>
 
-    <script src="{{ url_for('static', filename='script.js') }}"></script>
+        <div id="loading" class="loading-state" hidden><span class="spinner"></span><div><strong>Analyzing article…</strong><p>Checking the text with your model.</p></div></div>
+        <div id="emptyState" class="empty-state"><div class="empty-illustration">✦</div><h3>Ready when you are</h3><p>Submit a news article to see the prediction, confidence score, and explanation here.</p></div>
+        <div id="result" class="result-content" hidden></div>
+        <div class="result-footnote">AI assistance, not a substitute for independent fact-checking.</div>
+      </section>
+    </main>
 
+    <footer class="footer"><div class="footer-mark">✦</div><div><strong>AI-Based Explainable Multilingual Fake News Detection</strong><p>Helping readers make more informed decisions.</p></div><span class="footer-tag">Built for responsible AI</span></footer>
+    <div class="copyright">© <span id="year"></span> AI Fake News Detector</div>
+  </div>
+  <script src="{{ url_for('static', filename='script.js') }}"></script>
 </body>
 </html>

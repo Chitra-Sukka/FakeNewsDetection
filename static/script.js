@@ -1,163 +1,230 @@
-// ---------- helpers ----------
 const $ = (id) => document.getElementById(id);
-const esc = (s) => String(s).replace(/[&<>"']/g, (c) =>
-    ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+let lastSpoken = "";
+let recognition = null;
+let isListening = false;
+let hasResult = false;
+let currentResult = null;
 
-let lastSpoken = null;   // { text, lang } of the latest verdict
+function esc(value) {
+  return String(value ?? "").replace(/[&<>"']/g, ch => ({
+    "&":"&amp;", "<":"&lt;", ">":"&gt;", '"':"&quot;", "'":"&#39;"
+  }[ch]));
+}
+function wordCount(text) {
+  const trimmed = (text || "").trim();
+  return trimmed ? trimmed.split(/\s+/).length : 0;
+}
+function updateWordCount() {
+  $("wordCount").textContent = `${wordCount($("newsText").value)} words`;
+}
+document.addEventListener("DOMContentLoaded", () => {
+  $("year").textContent = new Date().getFullYear();
+  $("newsText").addEventListener("input", updateWordCount);
+  updateWordCount();
+});
 
-// ---------- fake news check ----------
 async function checkNews() {
-    const newsText = $("newsText").value.trim();
-    const language = $("language").value;
-    const loading = $("loading");
-    const result = $("result");
+  const news = $("newsText").value.trim();
+  if (!news) {
+    showMessage("Please enter or speak a news article before analyzing it.");
+    $("newsText").focus();
+    return;
+  }
+  if (wordCount(news) < 15) {
+    showMessage("Please enter at least 15 words for a more useful analysis.");
+    $("newsText").focus();
+    return;
+  }
 
-    result.innerHTML = "";
-    if (!newsText) {
-        result.textContent = "⚠️ Please enter some news text.";
-        return;
-    }
+  $("loading").hidden = false;
+  $("emptyState").hidden = true;
+  $("result").hidden = true;
+  $("checkBtn").disabled = true;
+  $("checkBtn").innerHTML = '<span class="spinner spinner-small"></span> Analyzing…';
+  $("resultSubtitle").textContent = "Processing your article.";
+  try {
+    const response = await fetch("/predict", {
+      method: "POST",
+      headers: {"Content-Type": "application/json"},
+      body: JSON.stringify({news, language: $("language").value})
+    });
+    let data;
+    try { data = await response.json(); }
+    catch { throw new Error("The server returned an invalid response. Check the Flask terminal."); }
+    if (!response.ok) throw new Error(data.error || data.message || "The server could not analyze this article.");
+    if (data.error) throw new Error(data.error);
 
-    loading.style.display = "block";
-    try {
-        const response = await fetch("/predict", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ news: newsText, language: language })
-        });
-        const data = await response.json();
-        loading.style.display = "none";
-
-        if (!response.ok) {
-            result.textContent = "❌ " + (data.error || "Something went wrong.");
-            return;
-        }
-
-        const chips = (words) => words.map((w) => `<span class="word">${esc(w)}</span>`).join("");
-
-        result.innerHTML = `
-            <div class="prediction">
-                <div class="prediction-result">${esc(data.result)}</div>
-                ${data.low_confidence
-                    ? `<div class="confidence">Leaning towards ${esc(data.leaning)} (${esc(data.confidence)}% confidence)</div>
-                       <div class="warn">⚠️ The model is not sure about this one. Please check other sources.</div>`
-                    : `<div class="confidence">Confidence: ${esc(data.confidence)}%</div>`}
-                <div class="lang-chip">🌐 Detected language: ${esc(data.language_name)}</div>
-                ${data.translated_text ? `<div class="translated"><strong>English translation used by the model:</strong><br>${esc(data.translated_text)}</div>` : ""}
-                <div class="explanation">
-                    <h3>🔍 Why did AI predict this?</h3>
-                    <p>Words that influenced the prediction${data.translated_text ? " (in the English translation)" : ""}:</p>
-                    <div class="important-words">
-                        <strong>⚠️ Fake-related words:</strong>
-                        <div class="word-list">${chips(data.fake_words || []) || "None detected"}</div>
-                        <br>
-                        <strong>✅ Real-related words:</strong>
-                        <div class="word-list">${chips(data.real_words || []) || "None detected"}</div>
-                    </div>
-                </div>
-            </div>`;
-
-        lastSpoken = { text: data.spoken, lang: data.speech_lang };
-        $("speakBtn").disabled = false;
-        if ($("autoRead").checked) speak(lastSpoken.text, lastSpoken.lang);
-
-    } catch (error) {
-        loading.style.display = "none";
-        result.textContent = "❌ Unable to connect to the AI server.";
-        console.error(error);
-    }
+    currentResult = {...data, original_news: news, analyzed_at: new Date().toLocaleString()};
+    renderResult(currentResult);
+    hasResult = true;
+    $("pdfBtn").disabled = false;
+    $("speakBtn").disabled = false;
+    $("resultSubtitle").textContent = "Analysis complete · " + currentResult.analyzed_at;
+    lastSpoken = makeSpokenSummary(currentResult);
+  } catch (error) {
+    showMessage(error.message || "Could not connect to the server. Make sure Flask is running.");
+  } finally {
+    $("loading").hidden = true;
+    $("checkBtn").disabled = false;
+    $("checkBtn").innerHTML = "<span>✦</span> Analyze news";
+  }
 }
 
-// ---------- voice input (speech -> text) ----------
-const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
-let recognition = null;
-let listening = false;
+function showMessage(message) {
+  $("loading").hidden = true;
+  $("emptyState").hidden = false;
+  $("result").hidden = true;
+  $("emptyState").innerHTML = `<div class="empty-illustration">!</div><h3>Unable to analyze</h3><p>${esc(message)}</p>`;
+  $("resultSubtitle").textContent = "Please review the input and try again.";
+}
 
-function setMicUI(on) {
-    listening = on;
-    const btn = $("micBtn");
-    btn.classList.toggle("listening", on);
-    btn.textContent = on ? "⏹ Stop listening" : "🎤 Start speaking";
+function renderResult(data) {
+  const raw = String(data.result || data.prediction || data.label || "Unknown");
+  const normalized = raw.toLowerCase();
+  const isFake = normalized.includes("fake") || normalized.includes("false");
+  const isReal = normalized.includes("real") || normalized.includes("true") || normalized.includes("reliable");
+  const uncertain = !isFake && !isReal;
+  const verdict = isFake ? "POTENTIALLY FAKE" : isReal ? "LIKELY REAL" : raw.toUpperCase();
+  const cardClass = isFake ? "fake" : uncertain ? "uncertain" : "";
+  const confidenceRaw = Number(data.confidence);
+  const confidence = Number.isFinite(confidenceRaw) ? Math.max(0, Math.min(100, confidenceRaw <= 1 ? confidenceRaw * 100 : confidenceRaw)) : null;
+  const confidenceText = confidence === null ? "N/A" : `${confidence.toFixed(confidence % 1 ? 1 : 0)}%`;
+  const language = data.language_name || data.detected_language || "Not provided";
+  const leaning = data.leaning ? `<div class="meta-card"><div class="meta-label">Model insight</div><div class="meta-value">${esc(data.leaning)}</div></div>` : "";
+  const fakeWords = Array.isArray(data.fake_words) ? data.fake_words : [];
+  const realWords = Array.isArray(data.real_words) ? data.real_words : [];
+  const wordChips = (words, fake) => words.length
+    ? `<div class="word-chips">${words.map(w => `<span class="word-chip ${fake ? "fake-word" : ""}">${esc(w)}</span>`).join("")}</div>`
+    : '<p>No influential words were provided by the model.</p>';
+  const translation = data.translated_text
+    ? `<div class="translation-card"><h3>Translation used by the model</h3><p>${esc(data.translated_text)}</p></div>` : "";
+  $("result").innerHTML = `
+    <div class="verdict-card ${cardClass}">
+      <div><div class="verdict-label">${esc(verdict)}</div><div class="verdict-subtitle">${isFake ? "The model flags this article as potentially misleading." : isReal ? "The model classifies this article as likely real." : "The model returned an unrecognized label; check your backend output."} This is a prediction, not independent verification.</div></div>
+      <div class="confidence-box"><div class="confidence-number">${confidenceText}</div><div class="confidence-caption">Model score</div></div>
+    </div>
+    <div class="meta-grid">
+      <div class="meta-card"><div class="meta-label">Detected language</div><div class="meta-value">${esc(language)}</div></div>
+      <div class="meta-card"><div class="meta-label">Confidence / score</div><div class="meta-value">${confidenceText}</div></div>
+      <div class="meta-card"><div class="meta-label">Analyzed at</div><div class="meta-value">${esc(currentResult?.analyzed_at || new Date().toLocaleString())}</div></div>
+      ${leaning}
+    </div>
+    <div class="explain-card"><h3>✧ Why did the model predict this?</h3><p>These words are supplied by your model as influential signals. They do not prove a claim is true or false.</p>
+      <div class="word-group"><div class="word-group-title">✓ Real-related words</div>${wordChips(realWords, false)}</div>
+      <div class="word-group"><div class="word-group-title">⚠ Fake-related words</div>${wordChips(fakeWords, true)}</div>
+    </div>
+    ${translation}
+  `;
+  $("emptyState").hidden = true;
+  $("result").hidden = false;
+}
+
+function makeSpokenSummary(data) {
+  const confidence = data.confidence == null ? "" : ` Confidence score: ${data.confidence} percent.`;
+  return `Analysis result: ${data.result || data.prediction || "unknown"}.${confidence}`;
+}
+
+function eraseAll() {
+  if (isListening && recognition) {
+    try { recognition.stop(); } catch (_) {}
+  }
+  isListening = false;
+  recognition = null;
+  $("newsText").value = "";
+  $("language").value = "auto";
+  updateWordCount();
+  $("result").innerHTML = "";
+  $("result").hidden = true;
+  $("loading").hidden = true;
+  $("emptyState").hidden = false;
+  $("emptyState").innerHTML = '<div class="empty-illustration">✦</div><h3>Ready when you are</h3><p>Submit a news article to see the prediction, confidence score, and explanation here.</p>';
+  $("resultSubtitle").textContent = "Your prediction will appear here.";
+  $("pdfBtn").disabled = true;
+  $("speakBtn").disabled = true;
+  $("micBtn").textContent = "🎙 Start speaking";
+  $("micBtn").classList.remove("is-listening");
+  $("checkBtn").disabled = false;
+  lastSpoken = "";
+  currentResult = null;
+  hasResult = false;
+  if ("speechSynthesis" in window) window.speechSynthesis.cancel();
+}
+
+function saveAsPDF() {
+  if (!hasResult || !currentResult) return;
+  // The browser print dialog includes "Save as PDF" on Chrome, Edge, and most desktop browsers.
+  window.print();
 }
 
 function toggleMic() {
-    if (!SR) {
-        $("result").textContent = "❌ Voice input needs Google Chrome or Microsoft Edge.";
-        return;
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) {
+    showMessage("Speech recognition is not supported by this browser. Try the latest Google Chrome or Microsoft Edge.");
+    return;
+  }
+  if (isListening && recognition) {
+    recognition.stop();
+    return;
+  }
+  recognition = new SpeechRecognition();
+  recognition.lang = $("voiceLang").value || "en-IN";
+  recognition.continuous = true;
+  recognition.interimResults = true;
+  recognition.onstart = () => {
+    isListening = true;
+    $("micBtn").textContent = "■ Stop speaking";
+    $("micBtn").classList.add("is-listening");
+  };
+  recognition.onresult = (event) => {
+    let finalText = "";
+    let interimText = "";
+    for (let i = event.resultIndex; i < event.results.length; i++) {
+      if (event.results[i].isFinal) finalText += event.results[i][0].transcript + " ";
+      else interimText += event.results[i][0].transcript;
     }
-    if (listening) { recognition.stop(); return; }
-
-    window.speechSynthesis && window.speechSynthesis.cancel();
-    recognition = new SR();
-    recognition.lang = $("voiceLang").value;
-    recognition.interimResults = true;
-    recognition.continuous = true;
-
-    const box = $("newsText");
-    let finalText = box.value ? box.value.trim() + " " : "";
-
-    recognition.onresult = (e) => {
-        let interim = "";
-        for (let i = e.resultIndex; i < e.results.length; i++) {
-            const t = e.results[i][0].transcript;
-            if (e.results[i].isFinal) finalText += t + " ";
-            else interim += t;
-        }
-        box.value = finalText + interim;
-    };
-    recognition.onerror = (e) => {
-        const msg = {
-            "not-allowed": "Microphone permission was denied.",
-            "no-speech": "I didn't hear anything - try again.",
-            "network": "Voice input needs an internet connection.",
-            "language-not-supported": "This browser doesn't support that speaking language."
-        }[e.error] || "Voice input error: " + e.error;
-        $("result").textContent = "🎤 " + msg;
-    };
-    recognition.onend = () => {
-        setMicUI(false);
-        if ($("autoCheck").checked && box.value.trim()) checkNews();
-    };
-
-    recognition.start();
-    setMicUI(true);
+    const existing = $("newsText").value.trim();
+    if (finalText) $("newsText").value = (existing ? existing + " " : "") + finalText.trim();
+    $("newsText").dataset.interim = interimText;
+    updateWordCount();
+  };
+  recognition.onerror = (event) => {
+    if (event.error !== "no-speech" && event.error !== "aborted") {
+      showMessage(`Microphone error: ${event.error}. Check browser microphone permissions.`);
+    }
+  };
+  recognition.onend = () => {
+    isListening = false;
+    $("micBtn").textContent = "🎙 Start speaking";
+    $("micBtn").classList.remove("is-listening");
+    $("newsText").dataset.interim = "";
+    if ($("autoCheck").checked && wordCount($("newsText").value) >= 15) checkNews();
+  };
+  try { recognition.start(); }
+  catch (error) { showMessage("Could not start the microphone. Check microphone permissions and try again."); }
 }
 
-// ---------- voice output (text -> speech) ----------
-async function speak(text, langTag) {
-    if (!text) return;
-    const synth = window.speechSynthesis;
-    if (synth && langTag) {
-        synth.cancel();
-        const voices = synth.getVoices();
-        const want = langTag.toLowerCase();
-        const voice =
-            voices.find((v) => v.lang.toLowerCase().replace("_", "-") === want) ||
-            voices.find((v) => v.lang.toLowerCase().startsWith(want.split("-")[0]));
-        if (voice) {
-            const u = new SpeechSynthesisUtterance(text);
-            u.voice = voice;
-            u.lang = voice.lang;
-            synth.speak(u);
-            return;
-        }
-    }
-    // No installed voice for this language: fall back to the server (gTTS)
-    try {
-        const r = await fetch("/tts", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text: text, lang: langTag ? langTag.split("-")[0] : "en" })
-        });
-        if (r.ok) new Audio(URL.createObjectURL(await r.blob())).play();
-    } catch (err) {
-        console.error(err);
-    }
+function speak(text, lang) {
+  if (!text) return;
+  if ("speechSynthesis" in window) {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.lang = lang || $("voiceLang").value || "en-IN";
+    utterance.rate = 0.95;
+    window.speechSynthesis.speak(utterance);
+    return;
+  }
+  fetch("/tts", {
+    method: "POST",
+    headers: {"Content-Type": "application/json"},
+    body: JSON.stringify({text, lang: lang || $("voiceLang").value || "en-IN"})
+  }).then(async response => {
+    if (!response.ok) throw new Error("TTS unavailable");
+    const blob = await response.blob();
+    const audio = new Audio(URL.createObjectURL(blob));
+    await audio.play();
+  }).catch(() => showMessage("Text-to-speech is not available in this browser and the server fallback failed."));
 }
 
 function speakLast() {
-    if (lastSpoken) speak(lastSpoken.text, lastSpoken.lang);
+  if (lastSpoken) speak(lastSpoken, currentResult?.speech_lang || $("voiceLang").value);
 }
-
-// Chrome loads voices asynchronously; touching the list early warms it up.
-if (window.speechSynthesis) window.speechSynthesis.getVoices();
