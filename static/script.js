@@ -29,7 +29,7 @@ async function checkNews() {
         loading.style.display = "none";
 
         if (!response.ok) {
-            result.textContent = "❌ " + data.error;
+            result.textContent = "❌ " + (data.error || "Something went wrong.");
             return;
         }
 
@@ -49,10 +49,10 @@ async function checkNews() {
                     <p>Words that influenced the prediction${data.translated_text ? " (in the English translation)" : ""}:</p>
                     <div class="important-words">
                         <strong>⚠️ Fake-related words:</strong>
-                        <div class="word-list">${chips(data.fake_words) || "None detected"}</div>
+                        <div class="word-list">${chips(data.fake_words || []) || "None detected"}</div>
                         <br>
                         <strong>✅ Real-related words:</strong>
-                        <div class="word-list">${chips(data.real_words) || "None detected"}</div>
+                        <div class="word-list">${chips(data.real_words || []) || "None detected"}</div>
                     </div>
                 </div>
             </div>`;
@@ -127,7 +127,7 @@ function toggleMic() {
 async function speak(text, langTag) {
     if (!text) return;
     const synth = window.speechSynthesis;
-    if (synth) {
+    if (synth && langTag) {
         synth.cancel();
         const voices = synth.getVoices();
         const want = langTag.toLowerCase();
@@ -142,13 +142,12 @@ async function speak(text, langTag) {
             return;
         }
     }
-    // No installed voice for this language (common for Telugu on Windows):
-    // fall back to the server (gTTS, needs internet).
+    // No installed voice for this language: fall back to the server (gTTS)
     try {
         const r = await fetch("/tts", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ text: text, lang: langTag.split("-")[0] })
+            body: JSON.stringify({ text: text, lang: langTag ? langTag.split("-")[0] : "en" })
         });
         if (r.ok) new Audio(URL.createObjectURL(await r.blob())).play();
     } catch (err) {

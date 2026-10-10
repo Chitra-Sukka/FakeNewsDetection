@@ -3,16 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
     <title>AI Fake News Detector</title>
-
     <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
-
 <body>
 
     <div class="container">
-
         <h1>📰 AI Fake News Detector</h1>
 
         <p class="subtitle">
@@ -21,27 +17,41 @@
 
         <div class="card">
 
-            <label for="language">Language</label>
-
+            <label for="language">Select News Language</label>
             <select id="language">
                 <option value="auto">🌐 Auto-detect</option>
                 <option value="en">🇬🇧 English</option>
-                <option value="hi">🇮🇳 Hindi</option>
-                <option value="te">🇮🇳 Telugu</option>
+                <!-- Indian Languages -->
+                <option value="hi">🇮🇳 Hindi (हिन्दी)</option>
+                <option value="te">🇮🇳 Telugu (తెలుగు)</option>
+                <option value="ta">🇮🇳 Tamil (தமிழ்)</option>
+                <option value="kn">🇮🇳 Kannada (ಕನ್ನಡ)</option>
+                <option value="ml">🇮🇳 Malayalam (മലയാളം)</option>
+                <option value="bn">🇮🇳 Bengali (বাংলা)</option>
+                <option value="mr">🇮🇳 Marathi (मराठी)</option>
+                <option value="gu">🇮🇳 Gujarati (ગુજરાતી)</option>
+                <!-- International Languages -->
+                <option value="es">🇪🇸 Spanish (Español)</option>
+                <option value="fr">🇫🇷 French (Français)</option>
             </select>
 
             <label for="newsText">Enter News Article</label>
-
             <textarea
                 id="newsText"
+                rows="6"
                 placeholder="Paste the news article here, or use the microphone..."
             ></textarea>
 
             <div class="voice-bar">
                 <select id="voiceLang" title="Language you will speak in">
-                    <option value="en-IN">Speak: English</option>
-                    <option value="hi-IN">Speak: Hindi</option>
-                    <option value="te-IN">Speak: Telugu</option>
+                    <option value="en-IN">Speak: English (India)</option>
+                    <option value="hi-IN">Speak: Hindi (हिंदी)</option>
+                    <option value="te-IN">Speak: Telugu (తెలుగు)</option>
+                    <option value="ta-IN">Speak: Tamil (தமிழ்)</option>
+                    <option value="kn-IN">Speak: Kannada (ಕನ್ನಡ)</option>
+                    <option value="ml-IN">Speak: Malayalam (മലയാളം)</option>
+                    <option value="bn-IN">Speak: Bengali (বাংলা)</option>
+                    <option value="mr-IN">Speak: Marathi (मराठी)</option>
                 </select>
                 <button type="button" id="micBtn" class="voice-btn" onclick="toggleMic()">🎤 Start speaking</button>
                 <button type="button" id="speakBtn" class="voice-btn" onclick="speakLast()" disabled>🔊 Read result</button>
@@ -52,11 +62,11 @@
                 <label class="check"><input type="checkbox" id="autoRead" checked> Read the result aloud</label>
             </div>
 
-            <button onclick="checkNews()">
+            <button type="button" onclick="checkNews()">
                 🔍 Check News
             </button>
 
-            <div id="loading">
+            <div id="loading" style="display: none;">
                 Analyzing news... Please wait.
             </div>
 
